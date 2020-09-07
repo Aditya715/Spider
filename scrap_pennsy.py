@@ -60,7 +60,7 @@ class PennsylvanialScrapper:
         # check whether records found or not.
         if data_table:
             tr = data_table.find("tr", class_="gridViewRow")
-            all_tds = tr.find_all("td")
+            all_tds = tr.find_all("td") if tr else False
             # check on datatable.
             if all_tds:
                 json_out = {
@@ -78,7 +78,7 @@ class PennsylvanialScrapper:
                 }
 
                 return json.dumps(json_out)
-        return False
+        return '{}'
 
     def get_form_data(self):
         """
@@ -124,8 +124,6 @@ class PennsylvanialScrapper:
 
             cookies = res.cookies
             soup = bs(res.content, "html.parser")
-            captcha = self.find_captcha(soup)
-
             # request 2 payload 
             payload = {
                 "__EVENTTARGET": "",

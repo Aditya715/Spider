@@ -1,0 +1,50 @@
+[
+    {
+        "input" : {
+            "first_name" : "william",
+            "last_name" : "rios",
+            "date_of_birth": "07/31/1975"
+        },
+        "output": {
+            "docket_number": "MJ-31201-CR-0001050-2007",
+            "court_office": "MDJ-31-2-01",
+            "short_caption": "Comm. v. Rios Rivera, William Antonio",
+            "filling_date": "11/06/2007",
+            "country": "Lehigh",
+            "case_status": "Closed",
+            "primary_participant": "Rios Rivera, William Antonio",
+            "OTN": "K6846641",
+            "complaint_number": "0790050",
+            "police_incident": "0790050",
+            "date_of_birth": "7/31/1975"
+        }
+    },
+    {
+        "input": {
+            "first_name": "john",
+            "last_name": "smith",
+            "date_of_birth": "01/24/1973"
+        },
+        "output": {
+            "docket_number": "MJ-43302-CR-0000404-2020", 
+            "court_office": "MDJ-43-3-02", 
+            "short_caption": "Comm. v. Smith, John Damien", 
+            "filling_date": "06/17/2020", 
+            "country": "Monroe", 
+            "case_status": "Closed", 
+            "primary_participant": "Smith, John Damien", 
+            "OTN": "U8841615", 
+            "complaint_number": "20190530M8374", 
+            "police_incident": "20190530M8374", 
+            "date_of_birth": "1/24/1973"
+        }
+    },
+    {
+        "input": {
+            "first_name": "john",
+            "last_name": "smith",
+            "date_of_birth": "01/24/1977"
+        },
+        "output": {}
+    }
+]
