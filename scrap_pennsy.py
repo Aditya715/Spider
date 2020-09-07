@@ -56,29 +56,31 @@ class PennsylvanialScrapper:
             params: beautifulsoup object
             return: json of record if found else boolean False.
         """
+        list_of_records = list()
         data_table = soup.find("table", class_="gridView")
         # check whether records found or not.
         if data_table:
-            tr = data_table.find("tr", class_="gridViewRow")
-            all_tds = tr.find_all("td") if tr else False
-            # check on datatable.
-            if all_tds:
-                json_out = {
-                    "docket_number": all_tds[7].text.strip(),
-                    "court_office" : all_tds[8].text.strip(),
-                    "short_caption": all_tds[9].text.strip(),
-                    "filling_date": all_tds[10].text.strip(),
-                    "country": all_tds[11].text.strip(),
-                    "case_status": all_tds[12].text.strip(),
-                    "primary_participant": all_tds[13].text.strip(),
-                    "OTN" : all_tds[15].text.strip(),
-                    "complaint_number": all_tds[18].text.strip(),
-                    "police_incident": all_tds[18].text.strip(),
-                    "date_of_birth": all_tds[19].text.strip()
-                }
-
-                return json.dumps(json_out)
-        return '{}'
+            all_trs = data_table.find_all("tr", class_="gridViewRow")
+            if all_trs:
+                for tr in all_trs:
+                    all_tds = tr.find_all("td")
+                    # check on datatable.
+                    if all_tds:
+                        json_out = {
+                            "docket_number": all_tds[7].text.strip(),
+                            "court_office" : all_tds[8].text.strip(),
+                            "short_caption": all_tds[9].text.strip(),
+                            "filling_date": all_tds[10].text.strip(),
+                            "country": all_tds[11].text.strip(),
+                            "case_status": all_tds[12].text.strip(),
+                            "primary_participant": all_tds[13].text.strip(),
+                            "OTN" : all_tds[15].text.strip(),
+                            "complaint_number": all_tds[18].text.strip(),
+                            "police_incident": all_tds[18].text.strip(),
+                            "date_of_birth": all_tds[19].text.strip()
+                        }
+                        list_of_records.append(json_out)    
+        return list_of_records
 
     def get_form_data(self):
         """
@@ -168,9 +170,10 @@ class PennsylvanialScrapper:
             return result
 
 # main code here.
-obj = PennsylvanialScrapper("william", "rios", "07/31/1975")
-result = obj.get_form_data()
-if result:
-    print(result)
-else:
-    print("No records found.")
+if __name__ == "__main__":
+    obj = PennsylvanialScrapper("steve", "smith", "04/23/2001")
+    result = obj.get_form_data()
+    if result:
+        pprint(result)
+    else:
+        print("No records found.")

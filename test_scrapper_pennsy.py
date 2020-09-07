@@ -32,5 +32,5 @@ def test_scrapper_pennsy():
                             input_values['date_of_birth']
                         )
             exact_output = scrapper_object.get_form_data()
-            # exact output is json format.
-            assert exact_output == json.dumps(expected_output)
+            
+            assert exact_output == expected_output
