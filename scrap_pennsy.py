@@ -89,7 +89,7 @@ class PennsylvanialScrapper:
 
         # creating session for request 
         with requests.session() as session:
-            res = session.get(self.url, headers=self.headers)
+            res = session.get(self.url, headers=self.headers, verify=False)
             soup = bs(res.content, "html.parser")
             cookies = res.cookies
 
@@ -121,6 +121,7 @@ class PennsylvanialScrapper:
                 self.url, 
                 headers=self.headers, 
                 data=data,
+                verify=False
                 # cookies=cookies
             )
 
@@ -157,7 +158,7 @@ class PennsylvanialScrapper:
                 headers=self.headers, 
                 data=payload,
                 cookies=cookies,
-                # verify=True
+                verify=False
             )
                 
             soup = bs(res.text, "html.parser")
