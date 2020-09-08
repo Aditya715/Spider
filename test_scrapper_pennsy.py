@@ -31,6 +31,6 @@ def test_scrapper_pennsy():
                             input_values['last_name'],
                             input_values['date_of_birth']
                         )
-            exact_output = scrapper_object.get_form_data()
+            exact_output = scrapper_object.fetch_records()
             
             assert exact_output == expected_output

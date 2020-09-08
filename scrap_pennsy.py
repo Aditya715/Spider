@@ -8,6 +8,7 @@ import json
 from pprint import pprint
 import requests
 from requests import Session, Request
+from requests.exceptions import ConnectionError
 from bs4 import BeautifulSoup as bs
 
 
@@ -82,27 +83,42 @@ class PennsylvanialScrapper:
                         list_of_records.append(json_out)    
         return list_of_records
 
-    def get_form_data(self):
+    @staticmethod
+    def manual_testing(soup):
         """
-            ------------------------
+            This is manual testing by creating a html file for the response.
+            params: soup object
+            return: None
+        """
+
+        manual_testing_file = "output.html"
+        fopen = open(manual_testing_file, "w")
+        fopen.write(str(soup))
+        fopen.close()
+
+    def fetch_records(self):
+        """
+            Fetching records data for a particular body.
+            params: self object
+            return: list of records/ blank list/ error message
         """
 
         # creating session for request 
         with requests.session() as session:
-            res = session.get(self.url, headers=self.headers, verify=False)
+            try:
+                res = session.get(self.url, headers=self.headers, verify=False)
+            except ConnectionError:
+                return {"Error": "Check connectivity."}
+
+            # response code check.
+            if res.status_code != 200:
+                return {"Error": res.status_code}
+        
             soup = bs(res.content, "html.parser")
             cookies = res.cookies
-
-            # this regex is having some issue. Need to get resolved.
-            # pattern = re.compile(
-            #     r"document\.getElementById\( \'ctl00_ctl00_ctl00_ctl07_captchaAnswer\' \)\.value = (.*?);$", re.MULTILINE | re.DOTALL
-            # )
-            # script = soup.find("script", text=pattern)
-            # print(pattern.search(script.text).group(1))
-
             captcha_answer = self.find_captcha(soup)
 
-            # request 1 payload data
+            # post request 1 payload data
             data = {
                 "__EVENTTARGET": "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$ddlSearchType",
                 "__EVENTARGUMENT": "",
@@ -117,16 +133,23 @@ class PennsylvanialScrapper:
             }
 
             # post method for request 1
-            res = session.post(
-                self.url, 
-                headers=self.headers, 
-                data=data,
-                verify=False
-                # cookies=cookies
-            )
+            try:
+                res = session.post(
+                    self.url, 
+                    headers=self.headers, 
+                    data=data,
+                    verify=False
+                    # cookies=cookies
+                )
+            except ConnectionError:
+                return {"Error": "Lost connction with the url."}
+            
+            if res.status_code != 200:
+                return {"Error": res.status_code}
 
             cookies = res.cookies
             soup = bs(res.content, "html.parser")
+            
             # request 2 payload 
             payload = {
                 "__EVENTTARGET": "",
@@ -153,27 +176,32 @@ class PennsylvanialScrapper:
             }
 
             # post method for request 2
-            res = session.post(
-                self.url, 
-                headers=self.headers, 
-                data=payload,
-                cookies=cookies,
-                verify=False
-            )
+            try:
+                res = session.post(
+                    self.url, 
+                    headers=self.headers, 
+                    data=payload,
+                    cookies=cookies,
+                    verify=False
+                )
+            except ConnectionError:
+                return {"Error": "Lost connction with the url."}
                 
+            if res.status_code != 200:
+                return {"Error": res.status_code}
+
             soup = bs(res.text, "html.parser")
-            # test by creating an HTML file.
-            # print("writing file")
-            # fopen = open("output.html", "w")
-            # fopen.write(str(soup))
-            # fopen.close()
+            # self.manual_testing(soup)     # for manual testing.
+
+            # fetching criminal record.
             result = self.get_criminal_record(soup)
             return result
 
 # main code here.
 if __name__ == "__main__":
+    # DOB format -- "MM/DD/YYYY"
     obj = PennsylvanialScrapper("steve", "smith", "04/23/2001")
-    result = obj.get_form_data()
+    result = obj.fetch_records()
     if result:
         pprint(result)
     else:
