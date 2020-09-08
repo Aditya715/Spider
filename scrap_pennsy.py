@@ -197,6 +197,7 @@ class PennsylvanialScrapper:
             result = self.get_criminal_record(soup)
             return result
 
+
 # main code here.
 if __name__ == "__main__":
     # DOB format -- "MM/DD/YYYY"
