@@ -9,7 +9,7 @@ from pprint import pprint
 import requests
 from requests import Session, Request
 from requests.exceptions import ConnectionError
-from bs4 import BeautifulSoup as bs
+from bs4 import BeautifulSoup
 
 
 class PennsylvanialScrapper:
@@ -96,6 +96,93 @@ class PennsylvanialScrapper:
         fopen.write(str(soup))
         fopen.close()
 
+    def post_request(self, session, payload_data, cookies):        
+        """
+            Hit a post request with the given payload.
+            params: session object, payload, cookies
+            return: response or error along with a status flag.
+        """
+        try:
+            response = session.post(
+                self.url, 
+                headers=self.headers, 
+                data=payload_data,
+                verify=False,
+                cookies=cookies
+            )
+            return response, True
+
+        except ConnectionError:
+            return {"Error": "Lost connction with the url."}, False
+        
+        if response.status_code != 200:
+            return {
+                    "Error Code": response.status_code,
+                    "Error Message": "Unable to redirect to the page, check manually whether the page is down if not contact developer with error code."
+                }, False
+    
+    @staticmethod
+    def get_cookies(response):
+        """This function takes response as params and returns cookies of that response."""
+        return response.cookies
+
+    def first_payload_creation(self,soup):
+        """
+            returns the payload data for the first post request from the soup params.
+            params: self, beautifulsoup object
+            return: a dictionary of payload
+        """
+        return {
+            "__EVENTTARGET": "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$ddlSearchType",
+            "__EVENTARGUMENT": "",
+            "__LASTFOCUS" : "",
+            "__SCROLLPOSITIONX": soup.find("input", attrs={'name': '__SCROLLPOSITIONX'}).get("value"),
+            "__SCROLLPOSITIONY": soup.find("input", attrs={'name': '__SCROLLPOSITIONY'}).get("value"),
+            "__VIEWSTATE": soup.find("input", attrs={'name': '__VIEWSTATE'}).get("value"),
+            "__VIEWSTATEGENERATOR": soup.find("input", attrs={'name': '__VIEWSTATEGENERATOR'}).get("value"),
+            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$ddlSearchType": "ParticipantName",
+            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsDocketNumber$ddlCounty": '',
+            "ctl00$ctl00$ctl00$ctl07$captchaAnswer": self.find_captcha(soup)
+        }
+
+    def second_payload_creation(self, soup):
+        """
+            returns the payload data for the second post request from the soup params.
+            params: self, beautifulsoup object
+            return: a dictionary of payload
+        """
+        return  {
+            "__EVENTTARGET": "",
+            "__EVENTARGUMENT": "",
+            "__LASTFOCUS" : "",
+            "__SCROLLPOSITIONX": soup.find("input", attrs={'name': '__SCROLLPOSITIONX'}).get("value"),
+            "__SCROLLPOSITIONY": soup.find("input", attrs={'name': '__SCROLLPOSITIONY'}).get("value"),
+            "__VIEWSTATE": soup.find("input", attrs={'name': '__VIEWSTATE'}).get("value"),
+            "__VIEWSTATEGENERATOR": soup.find("input", attrs={'name': '__VIEWSTATEGENERATOR'}).get("value"),
+            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$ddlSearchType": "ParticipantName",
+            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$txtLastName" : self.target_last_name,
+            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$txtFirstName": self.target_first_name,
+            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$dpDOB$DateTextBox": self.target_dob,
+            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$dpDOB$DateTextBoxMaskExtender_ClientState": "",
+            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$ddlCounty": "",
+            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$ddlDocketType": "CR",
+            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$ddlCaseStatus": "",
+            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$DateFiledDateRangePicker$beginDateChildControl$DateTextBox": "__/__/____",
+            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$DateFiledDateRangePicker$beginDateChildControl$DateTextBoxMaskExtender_ClientState": "",
+            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$DateFiledDateRangePicker$endDateChildControl$DateTextBox": "__/__/____",
+            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$DateFiledDateRangePicker$endDateChildControl$DateTextBoxMaskExtender_ClientState": "",
+            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$btnSearch" : "Search",
+            "ctl00$ctl00$ctl00$ctl07$captchaAnswer": self.find_captcha(soup)
+        }
+
+    @staticmethod
+    def create_soup(response):
+        """
+            params: response object
+            return: BeautifulSoup object
+        """
+        return BeautifulSoup(response.content, "html.parser")
+
     def fetch_records(self):
         """
             Fetching records data for a particular body.
@@ -106,91 +193,36 @@ class PennsylvanialScrapper:
         # creating session for request 
         with requests.session() as session:
             try:
-                res = session.get(self.url, headers=self.headers, verify=False)
+                response = session.get(self.url, headers=self.headers, verify=False)
             except ConnectionError:
-                return {"Error": "Check connectivity."}
-
+                return {"Error": "Check url or connectivity."}
             # response code check.
-            if res.status_code != 200:
-                return {"Error": res.status_code}
-        
-            soup = bs(res.content, "html.parser")
-            cookies = res.cookies
-            captcha_answer = self.find_captcha(soup)
+            if response.status_code != 200:
+                return {
+                    "Error Code": response.status_code, 
+                    "Error Message": "Check the page manually and if it's there, contact developer with the error code."
+                }
 
-            # post request 1 payload data
-            data = {
-                "__EVENTTARGET": "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$ddlSearchType",
-                "__EVENTARGUMENT": "",
-                "__LASTFOCUS" : "",
-                "__SCROLLPOSITIONX": soup.find("input", attrs={'name': '__SCROLLPOSITIONX'}).get("value"),
-                "__SCROLLPOSITIONY": soup.find("input", attrs={'name': '__SCROLLPOSITIONY'}).get("value"),
-                "__VIEWSTATE": soup.find("input", attrs={'name': '__VIEWSTATE'}).get("value"),
-                "__VIEWSTATEGENERATOR": soup.find("input", attrs={'name': '__VIEWSTATEGENERATOR'}).get("value"),
-                "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$ddlSearchType": "ParticipantName",
-                "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsDocketNumber$ddlCounty": '',
-                "ctl00$ctl00$ctl00$ctl07$captchaAnswer": captcha_answer
-            }
-
+            # creating beautifulsoup object
+            soup = self.create_soup(response)
+            cookies = self.get_cookies(response)
+            # payload creation here.
+            data = self.first_payload_creation(soup)    
             # post method for request 1
-            try:
-                res = session.post(
-                    self.url, 
-                    headers=self.headers, 
-                    data=data,
-                    verify=False
-                    # cookies=cookies
-                )
-            except ConnectionError:
-                return {"Error": "Lost connction with the url."}
-            
-            if res.status_code != 200:
-                return {"Error": res.status_code}
+            response, status = self.post_request(session, data, cookies)
+            if not status:
+                return response
 
-            cookies = res.cookies
-            soup = bs(res.content, "html.parser")
-            
+            cookies = self.get_cookies(response)
+            soup = self.create_soup(response)    
             # request 2 payload 
-            payload = {
-                "__EVENTTARGET": "",
-                "__EVENTARGUMENT": "",
-                "__LASTFOCUS" : "",
-                "__SCROLLPOSITIONX": soup.find("input", attrs={'name': '__SCROLLPOSITIONX'}).get("value"),
-                "__SCROLLPOSITIONY": soup.find("input", attrs={'name': '__SCROLLPOSITIONY'}).get("value"),
-                "__VIEWSTATE": soup.find("input", attrs={'name': '__VIEWSTATE'}).get("value"),
-                "__VIEWSTATEGENERATOR": soup.find("input", attrs={'name': '__VIEWSTATEGENERATOR'}).get("value"),
-                "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$ddlSearchType": "ParticipantName",
-                "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$txtLastName" : self.target_last_name,
-                "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$txtFirstName": self.target_first_name,
-                "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$dpDOB$DateTextBox": self.target_dob,
-                "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$dpDOB$DateTextBoxMaskExtender_ClientState": "",
-                "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$ddlCounty": "",
-                "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$ddlDocketType": "CR",
-                "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$ddlCaseStatus": "",
-                "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$DateFiledDateRangePicker$beginDateChildControl$DateTextBox": "__/__/____",
-                "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$DateFiledDateRangePicker$beginDateChildControl$DateTextBoxMaskExtender_ClientState": "",
-                "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$DateFiledDateRangePicker$endDateChildControl$DateTextBox": "__/__/____",
-                "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$DateFiledDateRangePicker$endDateChildControl$DateTextBoxMaskExtender_ClientState": "",
-                "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$btnSearch" : "Search",
-                "ctl00$ctl00$ctl00$ctl07$captchaAnswer": captcha_answer
-            }
-
+            data = self.second_payload_creation(soup)
             # post method for request 2
-            try:
-                res = session.post(
-                    self.url, 
-                    headers=self.headers, 
-                    data=payload,
-                    cookies=cookies,
-                    verify=False
-                )
-            except ConnectionError:
-                return {"Error": "Lost connction with the url."}
-                
-            if res.status_code != 200:
-                return {"Error": res.status_code}
-
-            soup = bs(res.text, "html.parser")
+            response, status = self.post_request(session, data, cookies)
+            if not status:
+                return response
+            
+            soup = self.create_soup(response)
             # self.manual_testing(soup)     # for manual testing.
 
             # fetching criminal record.
